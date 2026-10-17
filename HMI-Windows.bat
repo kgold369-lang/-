@@ -1,4 +1,25 @@
 @echo off
 setlocal
-powershell.exe -NoProfile -STA -Command "Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; [System.Windows.Forms.Application]::EnableVisualStyles(); $f = New-Object System.Windows.Forms.Form; $f.Text = 'HMI Control Panel'; $f.ClientSize = New-Object System.Drawing.Size(460,350); $f.StartPosition = 'CenterScreen'; $f.FormBorderStyle = 'FixedSingle'; $f.MaximizeBox = $false; $f.BackColor = [System.Drawing.Color]::FromArgb(28,41,53); $title = New-Object System.Windows.Forms.Label; $title.Text = 'HMI CONTROL PANEL'; $title.Location = New-Object System.Drawing.Point(30,25); $title.Size = New-Object System.Drawing.Size(400,40); $title.ForeColor = [System.Drawing.Color]::White; $title.Font = New-Object System.Drawing.Font('Segoe UI',18,[System.Drawing.FontStyle]::Bold); $start = New-Object System.Windows.Forms.Button; $start.Text = 'START'; $start.Location = New-Object System.Drawing.Point(30,90); $start.Size = New-Object System.Drawing.Size(190,65); $start.BackColor = [System.Drawing.Color]::MediumSeaGreen; $start.Font = New-Object System.Drawing.Font('Segoe UI',16,[System.Drawing.FontStyle]::Bold); $stop = New-Object System.Windows.Forms.Button; $stop.Text = 'STOP'; $stop.Location = New-Object System.Drawing.Point(240,90); $stop.Size = New-Object System.Drawing.Size(190,65); $stop.BackColor = [System.Drawing.Color]::LightCoral; $stop.Font = $start.Font; $lamp = New-Object System.Windows.Forms.Panel; $lamp.Location = New-Object System.Drawing.Point(50,200); $lamp.Size = New-Object System.Drawing.Size(65,65); $lamp.BackColor = [System.Drawing.Color]::DimGray; $circle = New-Object System.Drawing.Drawing2D.GraphicsPath; $circle.AddEllipse(0,0,64,64); $lamp.Region = New-Object System.Drawing.Region($circle); $state = New-Object System.Windows.Forms.Label; $state.Text = 'OFF'; $state.Location = New-Object System.Drawing.Point(145,207); $state.Size = New-Object System.Drawing.Size(250,50); $state.ForeColor = [System.Drawing.Color]::White; $state.Font = New-Object System.Drawing.Font('Segoe UI',24,[System.Drawing.FontStyle]::Bold); $note = New-Object System.Windows.Forms.Label; $note.Text = 'SIMULATION - No equipment connected'; $note.Location = New-Object System.Drawing.Point(30,305); $note.Size = New-Object System.Drawing.Size(400,25); $note.ForeColor = [System.Drawing.Color]::LightSteelBlue; $start.Add_Click({ $lamp.BackColor = [System.Drawing.Color]::LimeGreen; $state.Text = 'ON' }); $stop.Add_Click({ $lamp.BackColor = [System.Drawing.Color]::DimGray; $state.Text = 'OFF' }); $f.Controls.AddRange([System.Windows.Forms.Control[]]@($title,$start,$stop,$lamp,$state,$note)); [void]$f.ShowDialog(); $f.Dispose(); $circle.Dispose();"
-if errorlevel 1 pause
+title HMI Launcher v2
+cd /d "%~dp0"
+set "HMI_APP_DIR=%~dp0"
+echo Starting HMI v2...
+echo Keep this window open while the HMI is running.
+echo.
+if not exist "%~dp0HMI-Windows.ps1" (
+  echo ERROR: HMI-Windows.ps1 is missing.
+  echo Extract ALL files from the ZIP into the same folder first.
+  pause
+  exit /b 1
+)
+powershell.exe -NoLogo -NoProfile -STA -Command "$ErrorActionPreference='Stop'; try { $p=Join-Path $env:HMI_APP_DIR 'HMI-Windows.ps1'; $code=[System.IO.File]::ReadAllText($p); & ([scriptblock]::Create($code)) } catch { Write-Host 'HMI STARTUP ERROR:' -ForegroundColor Red; Write-Host ($_ | Out-String); Write-Host $_.ScriptStackTrace; exit 1 }"
+set "HMI_RESULT=%ERRORLEVEL%"
+echo.
+if "%HMI_RESULT%"=="0" (
+  echo HMI window closed normally.
+) else (
+  echo HMI failed. Exit code: %HMI_RESULT%
+  echo Please send the error text above for troubleshooting.
+)
+pause
+exit /b %HMI_RESULT%
